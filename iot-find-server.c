@@ -1,4 +1,4 @@
-/* server.c */ 
+﻿/* server.c */ 
 #include <stdio.h> 
 #include <string.h> 
 #include <netinet/in.h> 
@@ -17,6 +17,9 @@ int main(void)
 	char str[INET_ADDRSTRLEN]; 
 	int i, n; 
 	
+	char DeviceBuffer[80] = "I'm Light.1a:fe:34:12:34:56 192.168.1.230";
+	unsigned short length;
+	
 	sockfd = Socket(AF_INET, SOCK_DGRAM, 0); 
 	bzero(&servaddr, sizeof(servaddr)); 
 	servaddr.sin_family = AF_INET; 
@@ -32,18 +35,29 @@ int main(void)
 		printf("received from %s at PORT %d\n", 	\
 			inet_ntop(AF_INET, &cliaddr.sin_addr, str, sizeof(str)), \
 			ntohs(cliaddr.sin_port));
+		
 		//查看接收内容
 		for (i = 0; i < n; i++) 
 			putchar(buf[i]); 
 		printf("\n\r"); 
 		
-		//n = sendto(sockfd, buf, n, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr)); 
-		//if (n == -1) 
-			//perr_exit("sendto error");
+		length = strlen(DeviceBuffer);
+		n = sendto(sockfd, DeviceBuffer, length, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr)); 
+		if (n == -1) 
+			perr_exit("sendto error");
+		
+		printf("Server response:%s\n\r", DeviceBuffer); 
+
 	} 
 
 }
 #if 0
+
+//station: 00:9a:cd:23:93:ce join, AID = 1
+//I'm Light.18:fe:34:fe:a8:64 0.0.0.0
+//I'm Light.1a:fe:34:fe:a8:64 192.168.4.1
+//I'm Light.1a:fe:34:fe:a8:64 192.168.4.1
+
 void user_devicefind_recv(void *arg, char *pusrdata, unsigned short length)
 {
     char DeviceBuffer[40] = {0};
