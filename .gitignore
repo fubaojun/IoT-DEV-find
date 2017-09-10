@@ -1,0 +1,6 @@
+# Object files
+*.o
+
+# app bin file
+iot-find-server
+
