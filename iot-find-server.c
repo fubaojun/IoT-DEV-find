@@ -8,6 +8,45 @@
 #define MAXLINE 80 
 #define IOT_DEV_FIND_SERV_PORT 1025 
 
+typedef unsigned char uint8;
+typedef unsigned short uint16;
+typedef unsigned int uint32;
+
+const char *device_find_request = "Are You Espressif IOT Smart Device?";
+
+#define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
+#define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+
+#define ip4_addr1(ipaddr) (((uint8*)(ipaddr))[0])
+#define ip4_addr2(ipaddr) (((uint8*)(ipaddr))[1])
+#define ip4_addr3(ipaddr) (((uint8*)(ipaddr))[2])
+#define ip4_addr4(ipaddr) (((uint8*)(ipaddr))[3])
+
+#define ip4_addr1_16(ipaddr) ((uint16)ip4_addr1(ipaddr))
+#define ip4_addr2_16(ipaddr) ((uint16)ip4_addr2(ipaddr))
+#define ip4_addr3_16(ipaddr) ((uint16)ip4_addr3(ipaddr))
+#define ip4_addr4_16(ipaddr) ((uint16)ip4_addr4(ipaddr))
+
+#define IP2STR(ipaddr) ip4_addr1_16(ipaddr), \
+    ip4_addr2_16(ipaddr), \
+    ip4_addr3_16(ipaddr), \
+    ip4_addr4_16(ipaddr)
+
+#define IPSTR "%d.%d.%d.%d"
+
+#define IP4_ADDR(ipaddr, a,b,c,d) \
+        ipaddr = ((uint32)((d) & 0xff) << 24) | \
+                         ((uint32)((c) & 0xff) << 16) | \
+                         ((uint32)((b) & 0xff) << 8)  | \
+                          (uint32)((a) & 0xff)
+
+
+#define DEVICE_FIND_RESPONSE_HEADER "I'm %s." // %s ===> device_find_response_type
+const char *device_find_response_type = "IOTServer";
+
+void iot_device_find_response(char *prespBuff, void *pIP);
+
+
 int main(void) 
 { 
 	struct sockaddr_in servaddr, cliaddr; 
@@ -19,6 +58,9 @@ int main(void)
 	
 	char DeviceBuffer[80] = "I'm Light.1a:fe:34:12:34:56 192.168.1.230";
 	unsigned short length;
+	unsigned int dummy_ip = 0;
+	
+	IP4_ADDR(dummy_ip, 192,168,1,230);
 	
 	sockfd = Socket(AF_INET, SOCK_DGRAM, 0); 
 	bzero(&servaddr, sizeof(servaddr)); 
@@ -40,7 +82,7 @@ int main(void)
 		for (i = 0; i < n; i++) 
 			putchar(buf[i]); 
 		printf("\n\r"); 
-		
+		iot_device_find_response(DeviceBuffer, &dummy_ip);
 		length = strlen(DeviceBuffer);
 		n = sendto(sockfd, DeviceBuffer, length, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr)); 
 		if (n == -1) 
@@ -51,22 +93,19 @@ int main(void)
 	} 
 
 }
-#if 0
+#if 1
 
 //station: 00:9a:cd:23:93:ce join, AID = 1
 //I'm Light.18:fe:34:fe:a8:64 0.0.0.0
 //I'm Light.1a:fe:34:fe:a8:64 192.168.4.1
 //I'm Light.1a:fe:34:fe:a8:64 192.168.4.1
 
-void user_devicefind_recv(void *arg, char *pusrdata, unsigned short length)
+void iot_device_find_response(char *prespBuff, void *pIP)
 {
-    char DeviceBuffer[40] = {0};
-    char Device_mac_buffer[60] = {0};
-    char hwaddr[6];
-    remot_info *premot = NULL;
-    struct ip_info ipconfig;
+    unsigned char hwaddr[6] = {0x11,0x22,0x33,0x99,0x88,0x77};
 
-    if (wifi_get_opmode() != STATION_MODE) {
+
+/*     if (wifi_get_opmode() != STATION_MODE) {  // get  MAC ADDR
         wifi_get_ip_info(SOFTAP_IF, &ipconfig);
         wifi_get_macaddr(SOFTAP_IF, hwaddr);
 
@@ -77,13 +116,16 @@ void user_devicefind_recv(void *arg, char *pusrdata, unsigned short length)
     } else {
         wifi_get_ip_info(STATION_IF, &ipconfig);
         wifi_get_macaddr(STATION_IF, hwaddr);
-    }
+    } */
 
-    if (pusrdata == NULL) {
+    if (prespBuff == NULL) {
         return;
     }
 
-    if (length == os_strlen(device_find_request) &&
+	sprintf(prespBuff, DEVICE_FIND_RESPONSE_HEADER MACSTR " " IPSTR, device_find_response_type,
+        MAC2STR(hwaddr), IP2STR(pIP));
+
+/*     if (length == os_strlen(device_find_request) &&
             os_strncmp(pusrdata, device_find_request, os_strlen(device_find_request)) == 0) {
         os_sprintf(DeviceBuffer, "%s" MACSTR " " IPSTR, device_find_response_ok,
                    MAC2STR(hwaddr), IP2STR(&ipconfig.ip));
@@ -115,7 +157,7 @@ void user_devicefind_recv(void *arg, char *pusrdata, unsigned short length)
         } else {
             return;
         }
-    }
+    } */
 }
 #endif
 
